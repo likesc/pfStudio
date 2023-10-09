@@ -1,11 +1,13 @@
 local spacing = 10
 local tabwidth = 150
+local ignored = {}
 
-pfStudio.events = windget.window:CreateWindow("Events", 400, 200)
+pfStudio.events = windget.window:CreateWindow("Events", 600, 300)
 pfStudio.events:SetMinResize(160, 60)
 
 pfStudio.events:RegisterAllEvents()
 pfStudio.events:SetScript("OnEvent", function()
+	if (ignored[event]) then return end
   local count = 0
   local debuglink = "|H" .. event .. ":"
   local append = ""
@@ -24,8 +26,8 @@ pfStudio.events:SetScript("OnEvent", function()
   if count > 0 then
     append = "|cff33ffcc" .. debuglink .. "|h[" .. count .. "]|h|r"
   end
-
-  pfStudio.events.input:AddMessage("|cff555555" .. date("%H:%M:%S") .. "|r " .. event .. append .. "\n")
+  local eventlink = "|H" .. event .. "|h[" .. event .. "]|h"
+  pfStudio.events.input:AddMessage("|cff555555" .. date("%H:%M:%S") .. "|r " .. eventlink .. append .. "\n")
 end)
 
 pfStudio.events.input = windget.widget:CreateWidget("ScrollingMessageFrame", nil, pfStudio.events)
@@ -38,7 +40,29 @@ pfStudio.events.input:SetMaxLines(150)
 pfStudio.events.input:SetJustifyH("LEFT")
 pfStudio.events.input:SetFading(false)
 
+pfStudio.events.input:EnableMouseWheel(1)
+pfStudio.events.input:SetScript("OnMouseWheel", function()
+	local self = this
+	local modi = IsControlKeyDown() or IsAltKeyDown() or IsShiftKeyDown()
+	local scroll = arg1 > 0 and (modi and self.PageUp or self.ScrollUp) or (modi and self.PageDown or self.ScrollDown)
+	scroll(self)
+end)
+local function applyignored(event)
+	if ignored[event] then
+		ignored[event] = nil
+		DEFAULT_CHAT_FRAME:AddMessage("bring : [" .. event .. "] back")
+		return
+	end
+	ignored[event] = 1
+	DEFAULT_CHAT_FRAME:AddMessage("ignored : " .. event)
+end
+
 pfStudio.events.input:SetScript("OnHyperlinkClick", function()
+  local arg1 = arg1
+  if strbyte(arg1, strlen(arg1)) ~= 58 then -- ':'
+    applyignored(arg1)
+    return
+  end
   ShowUIPanel(ItemRefTooltip);
   ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
   ItemRefTooltip:SetFrameStrata("TOOLTIP")
